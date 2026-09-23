@@ -27,7 +27,7 @@ export default {
     <p>{{ productionParSeconde.toFixed(1) }} / seconde</p>
     <p>+{{ parClick }} par clic</p>
 
-    <button @click="cliquer">Lancer une Poké Ball </button>
+    <!-- <button @click="cliquer">Lancer une Poké Ball </button> -->
   </div>
 </template>
 

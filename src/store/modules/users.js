@@ -23,6 +23,19 @@ export default{
 
         chargerUtillisateurs(state, utilisateurs){
             state.utilisateurs = utilisateurs;
+        },
+
+        definirRole(state, {nom, role}){
+            const utilisateur = state.utilisateurs.find(utilisateur => utilisateur.nom === nom);
+            if(utilisateur){
+                utilisateur.role = role;
+            }
+        },
+
+        reinitialiserScores(state){
+            state.utilisateurs.forEach(utilisateur => {
+                utilisateur.pokeballs = 0;
+            });
         }
     },
 
@@ -37,14 +50,34 @@ export default{
 
         nomExiste: state => nom => {
             return state.utilisateurs.some(utilisateur => utilisateur.nom === nom);
+        },
+
+        estAdmin: (state, getters) => {
+            const utilisateur = getters.utilisateurActuel;
+            return utilisateur ? utilisateur.role === 'admin' : false;
+        },
+
+        classement: state => {
+            return [...state.utilisateurs].sort((a, b) => b.pokeballs - a.pokeballs);
+        },
+
+        rangUtilisateur: (state, gatters) => nom => {
+            const classement = gatters.classement;
+            const index = classement.findIndex(utilisateur => utilisateur.nom === nom);
+            return index !== -1 ? index + 1 : null;
         }
     },
 
     actions:{
-        initialiser({commit}){
+        initialiser({commit, state}){
             const donne = localStorage.getItem('pokeball-clicker-utilisateurs');
             if(donne){
                 commit('chargerUtillisateurs', JSON.parse(donne));
+            }
+
+            if(!state.utilisateurs.some(utilisateur => utilisateur.nom === 'admin')){
+                commit('ajouterUtilisateur', {nom: 'admin', motDePasse: 'admin'});
+                commit('definirRole', {nom: 'admin', role: 'admin'});
             }
         },
 
@@ -76,6 +109,32 @@ export default{
             if(!state.utilisateurCourant) return;
             commit('sauvegarerScore', {nom: state.utilisateurCourant, pokeballs: rootState.pokeballs.pokeballs});
             dispatch('persister');
+        },
+
+        modifierScoreJoueur({commit,  getters}, {nom, nouveauScore}){
+            if(getters.estAdmin){
+                commit('sauvegarerScore', {nom, pokeballs: nouveauScore});
+                dispatch('persister');
+                return {success: true, message: 'Score modifié avec succès'};
+            }
+            return {success: false, message: 'Permission refusée'};
+        },
+
+        reinitialiserScores({commit, getters, dispatch}){
+            if(getters.estAdmin){
+                commit('reinitialiserScores');
+                dispatch('persister');
+                return {success: true, message: 'Scores réinitialisés avec succès'};
+            }
+            return {success: false, message: 'Permission refusée'};
+        },
+
+        promouvoirAdmin({commit, getters}, nom){
+            if(getters.estAdmin){
+                commit('definirRole', {nom, role: 'admin'});
+                return {success: true, message: 'Utilisateur promu en admin avec succès'};
+            }
+            return {success: false, message: 'Permission refusée'};
         },
 
         persister({state}){
