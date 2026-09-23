@@ -14,10 +14,10 @@ export default{
             state.utilisateurCourant = nom;
         },
 
-        sauvegarerScore(state, {nom, score}){
+        sauvegarerScore(state, {nom, pokeballs}){
             const utilisateur = state.utilisateurs.find(utilisateur => utilisateur.nom === nom);
             if(utilisateur){
-                utilisateur.pokeballs = score;
+                utilisateur.pokeballs = pokeballs;
             }
         },
 
@@ -31,7 +31,7 @@ export default{
             return state.utilisateurCourant !== null;
         },
 
-        utilisateurCourant: state => {
+        utilisateurActuel: state => {
             return state.utilisateurs.find(utilisateur => utilisateur.nom === state.utilisateurCourant) || null;
         },
 

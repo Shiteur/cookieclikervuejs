@@ -23,6 +23,8 @@ export default {
 
     async gererInscription() {
       const resultat = await this.inscrire({ nom: this.nom, motDePasse: this.motDePasse })
+      this.nom = ''
+      this.motDePasse = ''
       this.message = resultat.succes ? 'Compte créé ! Vous pouvez vous connecter.' : resultat.message
     },
 

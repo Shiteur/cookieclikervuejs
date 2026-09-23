@@ -1,11 +1,11 @@
 export default {
-  namespaced: true,
-  state: {
-    pokeballs: 0,
-    parClick: 1,
-    multiplicateurGlobal: 1,
-    passif:{
-        ramoloss:{
+    namespaced: true,
+    state: {
+        pokeballs: 0,
+        parClick: 1,
+        multiplicateurGlobal: 1,
+        passif:{
+            ramoloss:{
             niveau: 0,
             coutBase: 15,
             productionParSeconde: 0.1
