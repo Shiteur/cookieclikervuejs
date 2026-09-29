@@ -7,17 +7,23 @@ export default{
 
     mutations:{
         ajouterUtilisateur(state, {nom, motDePasse}){
-            state.utilisateurs.push({nom, motDePasse, pokeballs: 0, role: 'joueur'});
+            state.utilisateurs.push({nom, motDePasse, role: 'joueur', partie:{
+                pokeballs: 0,
+                totalPokeballs: 0,
+                parClick: 1,
+                multiplicateurGlobal: 1,
+                passif:{}
+            }});
         },
 
         definirUtilisateurCourant(state, nom){
             state.utilisateurCourant = nom;
         },
 
-        sauvegarerScore(state, {nom, pokeballs}){
+        sauvegarerScore(state, {nom, partie}){
             const utilisateur = state.utilisateurs.find(utilisateur => utilisateur.nom === nom);
             if(utilisateur){
-                utilisateur.pokeballs = pokeballs;
+                utilisateur.partie = partie;
             }
         },
 
@@ -34,8 +40,18 @@ export default{
 
         reinitialiserScores(state){
             state.utilisateurs.forEach(utilisateur => {
-                utilisateur.pokeballs = 0;
+                utilisateur.partie = {
+                    pokeballs: 0,
+                    totalPokeballs: 0,
+                    parClick: 1,
+                    multiplicateurGlobal: 1,
+                    passif:{}
+                };
             });
+        },
+
+        suppressionUtilisateur(state, nom){
+            state.utilisateurs = state.utilisateurs.filter(utilisateur => utilisateur.nom !== nom);
         }
     },
 
@@ -58,7 +74,7 @@ export default{
         },
 
         classement: state => {
-            return [...state.utilisateurs].sort((a, b) => b.pokeballs - a.pokeballs);
+            return [...state.utilisateurs].sort((a, b) => b.partie.totalPokeballs || 0 - a.partie.totalPokeballs || 0);
         },
 
         rangUtilisateur: (state, gatters) => nom => {
@@ -93,8 +109,9 @@ export default{
         connecter({commit, state, dispatch}, {nom, motDePasse}){
             const utilisateur = state.utilisateurs.find(u => u.nom === nom && u.motDePasse === motDePasse);
             if(utilisateur){
-                commit('definirUtilisateurCourant', nom);
-                dispatch('pokeballs/chargerPokeballs', utilisateur.pokeballs, {root: true});
+                commit('definirUtilisateurCourant', nom)
+                dispatch('pokeballs/fusionnerEtCharger', utilisateur.partie, {root: true});
+                dispatch('pokeballs/effacerInvite', null, {root: true});
                 return {success: true, message: 'Connexion réussie'};
             }
             return {success: false, message: 'Nom d\'utilisateur ou mot de passe incorrect'};
@@ -103,17 +120,23 @@ export default{
         deconnecter({commit, dispatch, rootState}){
             dispatch('sauvegarderPartie');
             commit('definirUtilisateurCourant', null);
+            dispatch('pokeballs/reinitialiserEtat', null, {root: true});
         },
 
-        sauvegarderPartie({commit, state, rootState, dispatch}){
+        sauvegarderPartie({commit, state, rootGetters, dispatch}){
             if(!state.utilisateurCourant) return;
-            commit('sauvegarerScore', {nom: state.utilisateurCourant, pokeballs: rootState.pokeballs.pokeballs});
+            const etat=rootGetters['pokeballs/etatSauvegardable'];
+            commit('sauvegarerScore', {nom: state.utilisateurCourant, partie: etat});
             dispatch('persister');
         },
 
-        modifierScoreJoueur({commit,  getters}, {nom, nouveauScore}){
+        modifierScoreJoueur({commit,  getters, dispatch, state}, {nom, nouveauScore}){
             if(getters.estAdmin){
-                commit('sauvegarerScore', {nom, pokeballs: nouveauScore});
+                const utilisateur = state.utilisateurs.find(utilisateur => utilisateur.nom === nom);
+                if(utilisateur){
+                    user.partie.totalPokeballs = nouveauScore;
+                    user.partie.pokeballs = nouveauScore;
+                }
                 dispatch('persister');
                 return {success: true, message: 'Score modifié avec succès'};
             }
@@ -133,6 +156,18 @@ export default{
             if(getters.estAdmin){
                 commit('definirRole', {nom, role: 'admin'});
                 return {success: true, message: 'Utilisateur promu en admin avec succès'};
+            }
+            return {success: false, message: 'Permission refusée'};
+        },
+
+        supprimerUtilisateur({commit, getters, dispatch, state}, nom){
+            if(getters.estAdmin){
+                if(state.utilisateurCourant === nom){
+                    return {success: false, message: 'Vous ne pouvez pas supprimer votre propre compte'};
+                }
+                commit('suppressionUtilisateur', nom);
+                dispatch('persister');
+                return {success: true, message: 'Utilisateur supprimé avec succès'};
             }
             return {success: false, message: 'Permission refusée'};
         },

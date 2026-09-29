@@ -15,6 +15,22 @@ export default {
 
   mounted() {
     this.$store.dispatch('pokeballs/demarrerProductionAutomatique')
+
+    setInterval(() => {
+        if (this.$store.getters['users/estConnecte']) {
+            this.$store.dispatch('users/sauvegarderPartie')
+        } else {
+            this.$store.dispatch('pokeballs/sauvegarderInvite')
+        }
+    }, 10000)
+
+    window.addEventListener('beforeunload', () => {
+        if (this.$store.getters['users/estConnecte']) {
+            this.$store.dispatch('users/sauvegarderPartie')
+        } else {
+            this.$store.dispatch('pokeballs/sauvegarderInvite')
+        }
+    })
   }
 }
 </script>

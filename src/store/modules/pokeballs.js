@@ -2,6 +2,7 @@ export default {
     namespaced: true,
     state: {
         pokeballs: 0,
+        totalPokeballs: 0,
         parClick: 1,
         multiplicateurGlobal: 1,
         passif:{
@@ -35,10 +36,17 @@ export default {
   mutations:{
     ajouterPokeball(state, quantite=1){
         state.pokeballs += quantite * state.multiplicateurGlobal
+        state.totalPokeballs += quantite * state.multiplicateurGlobal
     },
 
     cliquer(state){
         state.pokeballs += state.parClick * state.multiplicateurGlobal
+        state.totalPokeballs += state.parClick * state.multiplicateurGlobal
+    },
+
+    ajouterPokeballBrut(state, quantite){
+        state.pokeballs += quantite
+        state.totalPokeballs += quantite
     },
 
     acheterPassif(state, {nom, cout}){
@@ -50,9 +58,46 @@ export default {
         state.multiplicateurGlobal = valeur
     },
 
-    chargerPokeballs(state, quantite){
-        state.pokeballs = quantite
+    chargerEtat(state, donnees){
+        state.pokeballs = donnees.pokeballs || 0;
+        state.totalPokeballs = donnees.totalPokeballs || 0;
+        state.parClick = donnees.parClick || 1;
+        state.multiplicateurGlobal = donnees.multiplicateurGlobal || 1;
+        
+        if (donnees.passif) {
+            for (const nom in donnees.passif) {
+                if (state.passif[nom]) {
+                    state.passif[nom].niveau = donnees.passif[nom].niveau || 0;
+                }
+            }
+        }
+    },
+
+    reinitialiserEtat(state){
+        state.pokeballs = 0;
+        state.totalPokeballs = 0;
+        state.parClick = 1;
+        state.multiplicateurGlobal = 1;
+        for (const nom in state.passif) {
+            state.passif[nom].niveau = 0;
+        }
+    },
+
+    fusionnerEtat(state, donnesCompte){
+        state.pokeballs += donnesCompte.pokeballs || 0;
+        state.totalPokeballs += donnesCompte.totalPokeballs || 0;
+        state.parClick = Math.max(state.parClick, donnesCompte.parClick || 1);
+        state.multiplicateurGlobal = Math.max(state.multiplicateurGlobal, donnesCompte.multiplicateurGlobal || 1);
+        
+        if (donnesCompte.passif) {
+            for (const nom in donnesCompte.passif) {
+                if (state.passif[nom]) {
+                    state.passif[nom].niveau = Math.max(state.passif[nom].niveau, donnesCompte.passif[nom].niveau || 0);
+                }
+            }
+        }
     }
+
   },
   getters:{
     coutProchainNiveau: (state) => (nom) => {
@@ -72,13 +117,31 @@ export default {
     achetable: (state, getters) => (nom) => {
         const cout = getters.coutProchainNiveau(nom);
         return state.pokeballs >= cout;
+    },
+
+    etatSauvegardable: (state) => {
+        const passifCopie = {};
+        for (const nom in state.passif) {
+            passifCopie[nom] = {
+                niveau: state.passif[nom].niveau
+            };
+        }
+        return {
+            pokeballs: state.pokeballs,
+            totalPokeballs: state.totalPokeballs,
+            parClick: state.parClick,
+            multiplicateurGlobal: state.multiplicateurGlobal,
+            passif: passifCopie
+        };
     }
   },
   actions: {
     async demarrerProductionAutomatique({commit, getters}) {
         setInterval(() => {
             const production = getters.productionTotaleParSeconde;
-            commit('ajouterPokeball', production);
+            if(production > 0) {
+                commit('ajouterPokeball', production);
+            }
         }, 1000);
     },
 
@@ -89,8 +152,30 @@ export default {
         }
     },
 
-    chargerPokeballs({commit}, quantite){
-        commit('chargerPokeballs', quantite);
+    chargerEtat({commit}, donnees){
+        commit('chargerEtat', donnees);
+    },
+    
+    reinitialiserEtat({commit}){
+        commit('reinitialiserEtat');
+    },
+
+    fusionnerEtCharger({commit}, donnesCompte){
+        commit('fusionnerEtat', donnesCompte);
+    },
+
+    sauvegarderInvite({getters}){
+        localStorage.setItem('pokeball-clicker-invite', JSON.stringify(getters.etatSauvegardable));
+    },
+
+    chargerInvite({commit}){
+        const donnees = localStorage.getItem('pokeball-clicker-invite');
+        if(donnees){
+            commit('chargerEtat', JSON.parse(donnees));
+        }
+    },
+    effacerInvite({commit}){
+        localStorage.removeItem('pokeball-clicker-invite');
     }
   }
 };

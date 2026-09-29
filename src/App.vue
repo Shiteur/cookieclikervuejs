@@ -12,6 +12,11 @@ export default {
     ListeAmeliorations,
     Leaderboard,
     PanelAdmin
+  },
+  created() {
+    this.$store.dispatch('users/initialiser'),
+    this.$store.dispatch('pokeballs/chargerInvite')
+
   }
 };
 </script>
